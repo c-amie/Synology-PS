@@ -1,5 +1,6 @@
 # Synology-PS: Synology API For PowerShell
-# © C:Amie 2024 - https://www.c-amie.co.uk/
+# © C:Amie 2024 - 2025 https://www.c-amie.co.uk/
+# Version 1.1.20250104
 # If this was useful to you, feel free to buy me a coffee at https://www.c-amie.co.uk/
 #
 # Include this file in your own script via:
@@ -1004,6 +1005,138 @@ function Synology-CreateFolder {
   }
 
   return Synology-InvokeMethod -AuthToken $AuthToken -API 'SYNO.FileStation.CreateFolder' -Method 'create' -Version 2 -Parameters $parameters -Return $true -OutputFormat Json
+}
+
+<#
+    .SYNOPSIS
+    Initiates a S.M.A.R.T. test on a physical hard drive
+
+    .DESCRIPTION
+    Invokes a self diagnostic test on a physical drive in the NAS (non-blocking)
+
+    .PARAMETER AuthToken
+    Required. The credential structure used to pass the server address and authentication token to methods
+
+    .PARAMETER Device
+    Required. The POSIX device path for the drive e.g. /dev/sda
+
+    .PARAMETER Type
+    Default = quick. Whether a quick or an extended S.M.A.R.T. test are requied [quick, extend]
+
+    .OUTPUTS
+    JSON representation of the NAS response.
+
+    .EXAMPLE
+    PS> Synology-BeginSmartTest -AuthToken $authToken -Device '/dev/sda' -Type quick
+
+#>
+function Synology-BeginSmartTest {
+  Param (
+    [Parameter(Mandatory=$true)]
+      $AuthToken,
+    [Parameter(Mandatory=$true)]
+      [string]$Device,
+    [Parameter(Mandatory=$false)]
+    [ValidateSet('quick', 'extend', IgnoreCase = $false)]
+      [string]$Type='quick'
+  )
+
+  $parameters = @{}
+  $parameters.Set_Item("device", $Device)
+  $parameters.Set_Item("type", $Type)
+
+  return Synology-InvokeMethod -AuthToken $AuthToken -Target Entry -API 'SYNO.Core.Storage.Disk' -Method 'do_smart_test' -Version 1 -Parameters $parameters -Return $true -OutputFormat Json
+}
+
+<#
+    .SYNOPSIS
+    Returns the S.M.A.R.T. test data for a drive
+
+    .DESCRIPTION
+    Returns the raw S.M.A.R.T. metric data from the drive
+
+    .PARAMETER AuthToken
+    Required. The credential structure used to pass the server address and authentication token to methods
+
+    .PARAMETER Device
+    Required. The POSIX device path for the drive e.g. /dev/sda
+
+    .OUTPUTS
+    JSON representation of the NAS response.
+
+    .EXAMPLE
+    PS> $smartdata = Synology-BeginSmartTest -AuthToken $authToken -Device '/dev/sda' -Type quick
+    PS> $smartdata.healthInfo.overview
+
+#>
+function Synology-GetSmartResults {
+  Param (
+    [Parameter(Mandatory=$true)]
+      $AuthToken,
+    [Parameter(Mandatory=$true)]
+      [string]$Device
+  )
+
+  $parameters = @{}
+  $parameters.Set_Item("device", $Device)
+
+  return Synology-InvokeMethod -AuthToken $AuthToken -Target Entry -API 'SYNO.Storage.CGI.Smart' -Method 'get_health_info' -Version 1 -Parameters $parameters -Return $true -OutputFormat Json
+}
+
+<#
+    .SYNOPSIS
+    Returns basic system information
+
+    .DESCRIPTION
+    Returns basic hardware specification, device firmware version and build, time Server data, uptime and system time, model and serial number
+
+    .PARAMETER AuthToken
+    Required. The credential structure used to pass the server address and authentication token to methods
+
+    .OUTPUTS
+    JSON representation of the NAS response.
+
+    .EXAMPLE
+    PS> Synology-SystemInfo -AuthToken $authToken
+
+#>
+function Synology-SystemInfo {
+  Param (
+    [Parameter(Mandatory=$true)]
+      $AuthToken
+  )
+
+  return Synology-InvokeMethod -AuthToken $AuthToken -Target Entry -API 'SYNO.Core.System' -Method 'info' -Version 3 -Return $true -OutputFormat Json
+}
+
+<#
+    .SYNOPSIS
+    Returns a list of installed apps in Package Center
+
+    .DESCRIPTION
+    Returns a list of installed apps in Package Center
+
+    .PARAMETER AuthToken
+    Required. The credential structure used to pass the server address and authentication token to methods
+
+    .OUTPUTS
+    JSON representation of the NAS response.
+
+    .EXAMPLE
+    PS> $packages = Synology-InstalledPackages -AuthToken $authToken
+    PS> $packages.packages
+
+#>
+function Synology-InstalledPackages {
+  Param (
+    [Parameter(Mandatory=$true)]
+      $AuthToken
+  )
+
+  $parameters = @{}
+  $parameters.Set_Item("additional", '["description","description_enu","dependent_packages","beta","distributor","distributor_url","maintainer","maintainer_url","dsm_apps","dsm_app_page","dsm_app_launch_name","report_beta_url","support_center","startable","installed_info","support_url","is_uninstall_pages","install_type","autoupdate","silent_upgrade","installing_progress","ctl_uninstall","updated_at"]')
+
+  return Synology-InvokeMethod -AuthToken $AuthToken -Target Entry -API 'SYNO.Core.Package' -Method 'list' -Version 2 -Parameters $parameters -Return $true -OutputFormat Json
 }
 
 <#
