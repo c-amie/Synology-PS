@@ -22,10 +22,13 @@ Synolgy-PS can:
 - Shutdown (Power off) the NAS
 
 ## Functions List
+- Synology-BeginSmartTest
 - Synology-CreateFolder
 - Synology-DeleteFile
 - Synology-DownloadFile
 - Synology-GenerateRandom
+- Synology-GetSmartResults
+- Synology-InstalledPackages
 - Synology-InvokeMethod
 - Synology-ListApi
 - Synology-ListFiles
@@ -38,6 +41,7 @@ Synolgy-PS can:
 - Synology-Restart
 - Synology-SetSessionTlsPolicy
 - Synology-Shutdown
+- Synology-SystemInfo
 - Synology-TestConnection
 - Synology-UploadFile
 - Synology-WakeOnLan
@@ -68,6 +72,16 @@ if (-Not $authToken) {
 # Do something... 
 
 Synology-Logout -AuthToken $authToken
+```
+### Get System Info (Model, Serial Number, Uptime, CPU, RAM etc...)
+```
+Synology-GetSystemInfo -AuthToken $authToken
+```
+
+### List all installed Package Center packages
+```
+$packages = Synology-InstalledPackages -AuthToken $authToken
+$packages.packages
 ```
 
 ### Restart the NAS
