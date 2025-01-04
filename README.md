@@ -15,6 +15,9 @@ Synolgy-PS can:
 - Create a folder on the NAS
 - Delete a file/directory on the NAS
 - Rename a file/directory on the NAS
+- Run a S.M.A.R.T. test and query S.M.A.R.T. data
+- List the system model, serial number, DSM version, time zone, uptime and hardware specification
+- List installed Package Center packages
 - List the available Web API methods for your device
 - Call any Web API method not handled by a specific wrapper function
 - Log-out
