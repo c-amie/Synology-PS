@@ -44,6 +44,11 @@ Synolgy-PS can:
 
 ## Basic Use
 
+### Wake-on-LAN your NAS
+```
+Synology-WakeOnLan -MacAddress 'xx-xx-xx-xx-xx-xx'
+```
+
 ### Sesson Creation and Teardown
 ```
 # Import
