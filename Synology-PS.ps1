@@ -1,6 +1,6 @@
 # Synology-PS: Synology API For PowerShell
 # © C:Amie 2024 - 2025 https://www.c-amie.co.uk/
-# Version 1.1.20250104
+# Version 1.2.20250113
 # If this was useful to you, feel free to buy me a coffee at https://www.c-amie.co.uk/
 #
 # Include this file in your own script via:
@@ -349,7 +349,7 @@ function Synology-Login {
     [Parameter(Mandatory=$true)]
       [string]$Password
   )
-  $sessionName = Synology-GenerateRandom -Length 16
+  $sessionName = 'FileStation' #Synology-GenerateRandom -Length 16: ' All File Station APIs are required to login with SYNO.API.Auth and session=FileStation'
   $url = "http$(if($UseHttps) { 's' } else { '' })://$($Hostname):$Port/webapi/auth.cgi?api=SYNO.API.Auth&version=3&method=login&account=$Username&passwd=$Password&session=$sessionName&format=sid" # or cookie
   
   $dictHeaders = @{ 
