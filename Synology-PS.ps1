@@ -1,6 +1,6 @@
 # Synology-PS: Synology API For PowerShell
 # © C:Amie 2024 - 2025 https://www.c-amie.co.uk/
-# Version 1.2.20250113
+# Version 1.2.20250125
 # If this was useful to you, feel free to buy me a coffee at https://www.c-amie.co.uk/
 #
 # Include this file in your own script via:
@@ -197,7 +197,7 @@ function Synology-TestConnection {
   try {
     #[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls13 -bor [System.Net.SecurityProtocolType]::Tls12 # -bor [System.Net.SecurityProtocolType]::Tls11 -bor [System.Net.SecurityProtocolType]::Tls -bor [System.Net.SecurityProtocolType]::Ssl3;
     #[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
-    $response = Invoke-WebRequest -Uri $url -Method GET
+    $response = Invoke-WebRequest -Uri $url -Method GET -ErrorAction SilentlyContinue | Out-Null
     return $($response.StatusCode -eq 200)
   } catch {
     return $false
