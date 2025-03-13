@@ -1,6 +1,6 @@
 # Synology-PS: Synology API For PowerShell
 # © C:Amie 2024 - 2025 https://www.c-amie.co.uk/
-# Version 1.2.20250125
+# Version 1.3.20250313
 # If this was useful to you, feel free to buy me a coffee at https://www.c-amie.co.uk/
 #
 # Include this file in your own script via:
@@ -359,7 +359,7 @@ function Synology-Login {
   #[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls13 -bor [System.Net.SecurityProtocolType]::Tls12 # -bor [System.Net.SecurityProtocolType]::Tls11 -bor [System.Net.SecurityProtocolType]::Tls -bor [System.Net.SecurityProtocolType]::Ssl3;
   #[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
-  $response = Invoke-WebRequest -Headers $dictHeaders -Uri $url -Method Get      # Can use -SkipCertificateCheck in PS6+
+  $response = Invoke-WebRequest -UseBasicParsing -Headers $dictHeaders -Uri $url -Method Get      # Can use -SkipCertificateCheck in PS6+
   $json = $response.Content | Out-String | ConvertFrom-Json
   $return = [PSCustomObject]@{
     PSTypeName = "SynologyAuthToken"
@@ -729,7 +729,7 @@ function Synology-DownloadFile {
   $url = "$($url)&path=$($Path)&mode=download"
 
   try {
-    Invoke-WebRequest -Uri $url -Method GET -OutFile $DestinationPath
+    Invoke-WebRequest -Uri $url -Method GET -OutFile $DestinationPath -UseBasicParsing
   } catch [System.Net.WebException] {
     Throw "HTTP Error $($_.Exception.Message)"
   }
@@ -1240,7 +1240,7 @@ function Synology-InvokeMethod {
 
   #$session.Cookies.Add($cookie) #"http$(if($AuthToken.UseHttps) { 's' } else { '' })://$($AuthToken.Hostname):$Port", 
 
-  $response = Invoke-WebRequest -Uri $url -Method GET -Body $Parametes #-Headers $dictHeaders -SessionVariable $session
+  $response = Invoke-WebRequest -UseBasicParsing -Uri $url -Method GET -Body $Parametes #-Headers $dictHeaders -SessionVariable $session
 
   if ($OutputFormat -eq 'Raw') {
     if ($PrintDebug) {
