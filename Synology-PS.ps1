@@ -1,6 +1,6 @@
 # Synology-PS: Synology API For PowerShell
 # © C:Amie 2024 - 2025 https://www.c-amie.co.uk/
-# Version 1.3.20250313
+# Version 1.4.20250327
 # If this was useful to you, feel free to buy me a coffee at https://www.c-amie.co.uk/
 #
 # Include this file in your own script via:
@@ -35,15 +35,23 @@ public class TrustAllCertsPolicy : ICertificatePolicy {
     .PARAMETER Length
     Required. The number of characters in the string
 
+    .PARAMETER PrintableOnly
+    Only uses A-Z, a-z, 0-9
+
     .EXAMPLE
     PS> Synology-GenerateRandom -Length 5
     a4*gU
 
+    .EXAMPLE
+    PS> Synology-GenerateRandom -Length 7 -PrintableOnly
+    m0tY5qu
 #>
 function Synology-GenerateRandom {
   param(
     [Parameter(Mandatory=$true)]
-    [int]$Length
+      [int]$Length,
+    [Parameter(Mandatory=$false)]
+      [switch]$PrintableOnly
   )
   $TokenSet = @{
     U = [Char[]]'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -56,7 +64,11 @@ function Synology-GenerateRandom {
   $Number = Get-Random -Count 5 -InputObject $TokenSet.N
   $Special = Get-Random -Count 5 -InputObject $TokenSet.S
 
-  $StringSet = $Upper + $Lower + $Number + $Special
+  if ($PrintableOnly) {
+    $StringSet = $Upper + $Lower + $Number
+  } else {
+    $StringSet = $Upper + $Lower + $Number + $Special
+  }
 
   (Get-Random -Count 15 -InputObject $StringSet) -join ''
 }
@@ -178,7 +190,7 @@ function Synology-WakeOnLan {
     Boolean. $true if the service responsed, $false if it did not
 
     .EXAMPLE
-    PS> Synology-TestConnection -UseHttps $true -Hostname 'mynas.mydomain.com' -Port 5001
+    PS> Synology-TestConnection -UseHttps $true -Hostname 'mynas.mydomain.uk' -Port 5001
     False
 
 #>
@@ -202,6 +214,197 @@ function Synology-TestConnection {
   } catch {
     return $false
   }
+}
+
+<#
+    .SYNOPSIS
+    Performs comprehensive checks to ensure that the NAS is online and available to process requests
+
+    .DESCRIPTION
+    Tests to see if the Synology device is on the network, its web services are functional, shares are accessible and writeable
+
+    .PARAMETER TestPing
+    Whether to test if the NAS will respond to a PING request based upon the hostname/IP defined in the AuthToken package
+
+    .PARAMETER MaxPingAttempts
+    Default = 50. The number of PING messages to try raising the NAS for before giving up
+
+    .PARAMETER TestWebServices
+    Whether to test if the NAS HTTP(s) web services are responding to HTTP requets. Ensure you set the appropriate Synology-SetSessionTlsPolicy before falling TestWebServices using HTTPS
+
+    .PARAMETER MaxWebServicesAttempts
+    Default = 25. The number of time to try to raise the NAS login page with a 5 seconds delay between each attempt before giving up
+
+    .PARAMETER UseHttps
+    Default = $true. Whether the request should be made using http ($false) or https ($true)
+
+    .PARAMETER Hostname
+    Required. The FQDN or IP Address of the NAS
+
+    .PARAMETER Port
+    Required. The TCP Port to connect to e.g. 443 or 5001
+
+    .PARAMETER TestSmbRead
+    Whether to test if a SMB share path is readable to the caller. You must specify the fully qualified SMB path using the ReadPath property
+
+    .PARAMETER ReadPath
+    The fully qualified absolute path on the NAS to the file that you want to test is readable.This can be to a file or folder
+
+    .PARAMETER MaxReadAttempts
+    Default = 5. The number of time to try to read from the path specified by ReadPath before giving up. Has a 5 second delay between each attempt
+
+    .PARAMETER TestSmbWrite
+    Whether to test if a SMB share/file is writeable to the caller. You must specify the fully qualified SMB path using the WritePath property. This method will attmept to create and delete a test file at the specified path
+
+    .PARAMETER WritePath
+    The fully qualified absolute path on the NAS to the file that you want to test is writeable. This should be to a folder, not a file
+
+    .PARAMETER MaxWriteAttempts
+    Default = 5. The number of time to try to write to the path specified by WritePath before giving up. Has a 5 second delay between each attempt
+
+    .OUTPUTS
+    Boolean. $true if the NAS passed all tests, $false if it did not
+
+    .EXAMPLE
+    PS> Synology-TestServices -TestPing -Hostname "mynas.mydomain.uk" -MaxPingAttempts 10
+    False
+
+    .EXAMPLE
+    PS> Synology-TestServices -TestWebServices -Hostname "mynas.mydomain.uk" -Port 5001 -UseHttps $true -MaxWebServicesAttempts 7
+    True
+
+    .EXAMPLE
+    PS> Synology-TestServices -TestSmbRead -ReadPath '\\mynas.mydomain.uk\myshare\myfolder' -MaxReadAttempts 12
+    False
+
+    .EXAMPLE
+    PS> Synology-TestServices -TestSmbWrite -WritePath '\\mynas.mydomain.uk\myshare\myfolder' -MaxWriteAttempts 4
+    True
+
+    .EXAMPLE
+    PS> Synology-TestServices -Hostname "mynas.mydomain.uk" -TestPing -TestWebServices -Port 5001 -UseHttps $true -TestSmbRead -ReadPath '\\mynas.mydomain.uk\myshare\myfolder' -TestSmbWrite -WritePath '\\mynas.mydomain.uk\myshare\myfolder'
+    False
+
+#>
+function Synology-TestServices {
+  Param (
+    [Parameter(Mandatory=$false)]
+      [switch]$TestPing,
+    [Parameter(Mandatory=$false)]
+      [int]$MaxPingAttempts=50,
+    [Parameter(Mandatory=$false)]
+      [switch]$TestWebServices,
+    [Parameter(Mandatory=$false)]
+      [int]$MaxWebServicesAttempts=25,
+    [Parameter(Mandatory=$false)]
+      [boolean]$UseHttps=$true,
+    [Parameter(Mandatory=$false)]
+      [string]$Hostname,
+    [Parameter(Mandatory=$false)]
+      [int]$Port,
+    [Parameter(Mandatory=$false)]
+      [switch]$TestSmbRead,
+    [Parameter(Mandatory=$false)]
+      [string]$ReadPath,
+    [Parameter(Mandatory=$false)]
+      [int]$MaxReadAttempts=5,
+    [Parameter(Mandatory=$false)]
+      [switch]$TestSmbWrite,
+    [Parameter(Mandatory=$false)]
+      [string]$WritePath,
+    [Parameter(Mandatory=$false)]
+      [int]$MaxWriteAttempts=5
+  )
+
+  if ($TestPing) {
+    Write-Host " Testing PING response from '$hostname' for $MaxPingAttempts PING's" -ForegroundColor Gray
+    $i = 0
+    do {
+        Start-Sleep -Seconds 1
+        $i++
+        if ($i -gt $MaxPingAttempts) {
+            Write-Host " '$hostname' did not come online after $MaxPingAttempts ping attempts, exiting" -ForegroundColor Red
+            return $false
+        }
+    } until (Test-Connection $hostname -count 1 -quiet)
+    Write-Host " '$hostname' is responding to PING's." -ForegroundColor Green
+  }
+
+  if ($TestWebServices) {
+    $url = "http$(if($UseHttps) { 's' } else { '' })://$($Hostname):$Port/#/signin"
+    Write-Host " Testing web services on '$Hostname' for $MaxWebServicesAttempts attempts" -ForegroundColor Gray
+    $i = 0
+    while ($i -le $MaxWebServicesAttempts) {
+        if ($i -eq $MaxWebServicesAttempts) {
+            Write-Host " $hostname web services did not come online after $MaxWebServiceAttempts attempts, exiting" -ForegroundColor Red
+            return $false
+        }
+        try {
+          $return = Invoke-WebRequest -Uri $url -Method Get -ErrorAction Continue -UseBasicParsing
+          if ($return.StatusCode -eq 200) {
+            break
+          }
+        } catch {
+          #$_.exception.innerexception.errorcode
+        }
+        Start-Sleep -Seconds 5
+        $i++
+    }
+    Write-Host " '$hostname' web services are responding." -ForegroundColor Green
+  }
+
+  if ($TestSmbRead) {
+    if (-Not $ReadPath) {
+      Write-Host "You must specify a value for ReadPath in order to test that a SMB share is readable."
+      return $false
+    }
+    Write-Host " Testing to see if '$ReadPath' is readable on '$Hostname' for $MaxReadAttempts attempts" -ForegroundColor Gray
+    $i = 0
+    while ($i -le $MaxReadAttempts) {
+      if ($i -eq $MaxReadAttempts) {
+        Write-Host " '$ReadPath' was not readable after $MaxReadAttempts attempts, exiting" -ForegroundColor Red
+        return $false
+      }
+      try {
+        if ($(Test-Path -Path $ReadPath -ErrorAction SilentlyContinue)) {
+          break
+        }
+      } catch {
+
+      }
+      Start-Sleep -Seconds 5
+      $i++
+    }
+  }
+
+  if ($TestSmbWrite) {
+    if (-Not $WritePath) {
+      Write-Host "You must specify a value for WritePath in order to test that a SMB share is writeable."
+      return $false
+    }
+    Write-Host " Testing to see if '$WritePath' is writeable on '$Hostname' for $MaxWriteAttempts attempts" -ForegroundColor Gray
+    $i = 0
+    $tempFile = "$WritePath\$(Synology-GenerateRandom -Length 20).tmp"
+    while ($i -le $MaxWriteAttempts) {
+      if ($i -eq $MaxWriteAttempts) {
+        Write-Host " '$WritePath' was not writeable after $MaxWriteAttempts attempts, exiting" -ForegroundColor Red
+        return $false
+      }
+      try {
+        New-Item $tempFile -type file -ErrorAction Ignore | Out-Null
+        if ($(Test-Path -Path $tempFile -PathType Leaf -ErrorAction SilentlyContinue)) {
+          Remove-Item $tempFile -ErrorAction SilentlyContinue
+          break
+        }
+      } catch {
+
+      }
+      Start-Sleep -Seconds 5
+      $i++
+    }
+  }
+
+  return $true
 }
 
 <#
@@ -333,7 +536,7 @@ function Synology-ParseFolderPath {
     An authentication token structure containing the session data necessary to make use of the PowerShell API
 
     .EXAMPLE
-    PS> $authToken = Synology-Login -Hostname "mynas.mydomain.com" -Port 5001 -UseHttps $true -Username "admin" -Password "secret"
+    PS> $authToken = Synology-Login -Hostname "mynas.mydomain.uk" -Port 5001 -UseHttps $true -Username "admin" -Password "secret"
 
 #>
 function Synology-Login {
