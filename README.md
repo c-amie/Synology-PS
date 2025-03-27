@@ -46,6 +46,7 @@ Synolgy-PS can:
 - Synology-Shutdown
 - Synology-SystemInfo
 - Synology-TestConnection
+- Synology-TestServices
 - Synology-UploadFile
 - Synology-WakeOnLan
 
@@ -63,6 +64,9 @@ Synology-WakeOnLan -MacAddress 'xx-xx-xx-xx-xx-xx'
 
 # Set TLS 1.2 and 1.3 to enabled
 Synology-SetSessionTlsPolicy
+
+# Test that the NAS is up and available
+Synology-TestServices -Hostname mynas.mydomain.local" -TestPing -TestWebServices -Port 5001 -UseHttps $true -TestSmbRead -ReadPath '\\mynas.mydomain.local\myshare\myfolder' -TestSmbWrite -WritePath '\\mynas.mydomain.local\myshare\myfolder'
 
 # Fetch an Authentication Token
 $authToken = Synology-Login -Hostname "mynas.mydomain.local" -Port 5001 -UseHttps $true -Username "admin" -Password "secret"
