@@ -1,6 +1,6 @@
 # Synology-PS: Synology API For PowerShell
 # © C:Amie 2024 - 2025 https://www.c-amie.co.uk/
-# Version 1.4.20250327
+# Version 1.5.20250331
 # If this was useful to you, feel free to buy me a coffee at https://www.c-amie.co.uk/
 #
 # Include this file in your own script via:
@@ -562,7 +562,7 @@ function Synology-Login {
   #[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls13 -bor [System.Net.SecurityProtocolType]::Tls12 # -bor [System.Net.SecurityProtocolType]::Tls11 -bor [System.Net.SecurityProtocolType]::Tls -bor [System.Net.SecurityProtocolType]::Ssl3;
   #[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
-  $response = Invoke-WebRequest -UseBasicParsing -Headers $dictHeaders -Uri $url -Method Get      # Can use -SkipCertificateCheck in PS6+
+  $response = Invoke-WebRequest -UseBasicParsing -Headers $dictHeaders -Uri $url -Method Get #-DisableKeepAlive      # Can use -SkipCertificateCheck in PS6+
   $json = $response.Content | Out-String | ConvertFrom-Json
   $return = [PSCustomObject]@{
     PSTypeName = "SynologyAuthToken"
@@ -573,7 +573,9 @@ function Synology-Login {
     UseHttps = $UseHttps
     Hostname = $Hostname
     Port = $Port
+    SessionCreated = $(Get-Date)
   }
+
   $return
 }
 
