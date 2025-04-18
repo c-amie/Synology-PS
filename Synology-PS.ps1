@@ -1,6 +1,6 @@
 # Synology-PS: Synology API For PowerShell
 # © C:Amie 2024 - 2025 https://www.c-amie.co.uk/
-# Version 1.5.20250331
+# Version 1.5.20250416
 # If this was useful to you, feel free to buy me a coffee at https://www.c-amie.co.uk/
 #
 # Include this file in your own script via:
@@ -554,7 +554,7 @@ function Synology-Login {
   )
   $sessionName = 'FileStation' #Synology-GenerateRandom -Length 16: ' All File Station APIs are required to login with SYNO.API.Auth and session=FileStation'
   $url = "http$(if($UseHttps) { 's' } else { '' })://$($Hostname):$Port/webapi/auth.cgi?api=SYNO.API.Auth&version=3&method=login&account=$Username&passwd=$Password&session=$sessionName&format=sid" # or cookie
-  
+$url
   $dictHeaders = @{ 
     "Content-Type" = "application/x-www-form-urlencoded"
    }
@@ -562,8 +562,19 @@ function Synology-Login {
   #[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls13 -bor [System.Net.SecurityProtocolType]::Tls12 # -bor [System.Net.SecurityProtocolType]::Tls11 -bor [System.Net.SecurityProtocolType]::Tls -bor [System.Net.SecurityProtocolType]::Ssl3;
   #[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 
-  $response = Invoke-WebRequest -UseBasicParsing -Headers $dictHeaders -Uri $url -Method Get #-DisableKeepAlive      # Can use -SkipCertificateCheck in PS6+
+  # This loop protects against spurious "The request was aborted: The request was canceled." errors that work if the command is immediately re-sent
+  $i = 0
+  while ($i -lt 2) {
+    try {
+      $response = Invoke-WebRequest -UseBasicParsing -Headers $dictHeaders -Uri $url -Method Get -DisableKeepAlive -TimeoutSec 600 #-DisableKeepAlive      # Can use -SkipCertificateCheck in PS6+
+    } catch {
+     # Throw "HTTP Error $($_.Exception.Message)"
+    }
+    $i++
+  }
+
   $json = $response.Content | Out-String | ConvertFrom-Json
+
   $return = [PSCustomObject]@{
     PSTypeName = "SynologyAuthToken"
     Success = $json.success
@@ -601,7 +612,7 @@ function Synology-Logout {
   if (-Not $AuthToken) {
     return
   }
-  Synology-InvokeMethod -AuthToken $authToken -Target Auth -API "SYNO.API.Auth" -Method "logout" -Parameters @{"session" = $AuthToken.SessionName}
+  Synology-InvokeMethod -AuthToken $AuthToken -Target Auth -API "SYNO.API.Auth" -Method "logout" -Parameters @{"session" = $AuthToken.SessionName}
 }
 
 <#
